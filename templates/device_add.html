@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Devices</title>
+<style>
+/* Reset and basic styling */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: #2c3e50; /* Lighter background for better readability */
+  color: #333;
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 800px;
+  margin: 20px auto;
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+header h1 {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+main {
+  display: flex;
+  justify-content: space-between;
+}
+
+.form {
+  flex: 1;
+  padding-right: 20px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.form-group input,
+.form-group select {
+  width: calc(100% - 10px);
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+button {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  background-color: #f09c1d;
+  color: white; /* Improved contrast */
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.logo {
+  flex: 1;
+  text-align: center;
+}
+
+.logo img {
+  max-width: 100%;
+}
+
+footer {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 12px;
+  color: #666;
+}
+
+/* Dropdown with checkboxes styles */
+.dropdown {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 15px;
+}
+
+.dropdown-toggle {
+  background-color: #f09c1d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 15px;
+  cursor: pointer;
+}
+
+.dropdown-menu {
+  position: absolute;
+  background-color: #fff;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 10px;
+  display: none;
+  z-index: 1000;
+  max-height: 150px; /* Limit dropdown height */
+  width: 200px; /* Adjusted width for better fit */
+  overflow-y: auto; /* Add scroll for overflow */
+}
+
+.dropdown-menu label {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.dropdown-menu label input[type="checkbox"] {
+  margin-right: 5px;
+}
+
+.dropdown-menu.show {
+  display: block;
+}
+
+#preloader{
+ background-color: rgba(255, 255, 255, 0.5); /* Adjust opacity as needed */
+ backdrop-filter: blur(10px); /* Adjust blur intensity as needed */
+ background: url("../static/loader.gif") no-repeat center center;
+ position: fixed;
+ background-size: 30%;
+ width: 100%;
+ height: 100vh;
+ z-index: 100;
+
+}
+</style>
+
+</head>
+<body>
+  <div id="preloader"></div>
+
+  <div class="container">
+    <header>
+      <h1>Add Devices</h1>
+    </header>
+    <main>
+      <form class="form" action="/device_add" id="deviceForm" method="post">
+        <div class="form-group">
+          <label for="deviceNumber">Device Number</label>
+          <input type="text" id="deviceNumber" placeholder="Device Number" name="deviceNumber">
+        </div>
+        <div class="form-group">
+          <label for="roomNumber">Room Number/Name</label>
+          <input type="text" id="roomNumber" placeholder="Room Number/Name" name="roomNumber">
+        </div>
+        <div class="form-group">
+          <label for="ipAddress">IP Address</label>
+          <input type="text" id="ipAddress" placeholder="IP Address" name="ipAddress">
+        </div>
+       
+        <div class="form-group">
+          <label for="alertSetting">Alert Settings</label>
+          <!-- Dropdown with checkboxes -->
+          <div class="dropdown">
+            <button class="dropdown-toggle" id="alertSettingToggle" type="button" aria-haspopup="true" aria-expanded="false" onclick="toggleDropdown()">Select Alerts</button>
+            <div class="dropdown-menu" id="alertSettingDropdown">
+              <label><input type="checkbox" value="Fire Detection" name="alertSetting">Fire Detection</label>
+              <label><input type="checkbox" value="Fall Detection" name="alertSetting">Fall Detection</label>
+              <label><input type="checkbox" value="Staff Monitoring" name="alertSetting">Staff Monitoring</label>
+              <label><input type="checkbox" value="Violence Detection" name="alertSetting">Violence Detection</label>
+              <label><input type="checkbox" value="Hygeine" name="alertSetting">Hygeine Control</label>
+              <label><input type="checkbox" value="Loitering" name="alertSetting">Loitering</label>
+            </div>
+          </div>
+        </div>
+        <button id="addButton" type="submit">ADD</button>
+      </form>
+      <div class="logo">
+        <img src="static/add_logo.png" alt="Logo">
+      </div>
+    </main>
+    <footer>
+      <p>Third Eye</p>
+    </footer>
+    <div id="deviceTable"></div>
+  </div>
+<script>
+// Function to toggle dropdown menu
+function toggleDropdown() {
+  const dropdownMenu = document.getElementById('alertSettingDropdown');
+  dropdownMenu.classList.toggle('show');
+}
+
+// Close the dropdown menu if the user clicks outside of it
+document.addEventListener('click', function(event) {
+  const dropdownMenu = document.getElementById('alertSettingDropdown');
+  if (!event.target.matches('.dropdown-toggle')) {
+    dropdownMenu.classList.remove('show');
+  }
+});
+
+</script>
+
+<script>
+  var loader = document.getElementById("preloader");
+  window.addEventListener("load", function(){
+    loader.style.display = "none";
+  })
+</script>
+</body>
+</html>

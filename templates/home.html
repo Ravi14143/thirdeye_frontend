@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard</title>
+<script src="https://www.gstatic.com/charts/loader.js"></script>
+
+
+<style>
+  body {
+    font-family: 'Arial', sans-serif;
+    font-size: 16px;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+  #container {
+    display: flex;
+    width: 100%;
+    height: 100%;
+  }
+  #sidebar {
+    width: 150px;
+    background-color: #2c3e50;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 10px;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  }
+  #sidebar .title {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 25px;
+    font-weight: bold;
+    color: #ecf0f1;
+    margin-bottom: 30px;
+  }
+  #sidebar .button {
+    font-family: 'Arial', sans-serif;
+    font-weight: bold;
+    background: none;
+    border: none;
+    text-align: left;
+    width: 100%;
+    padding: 10px 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    color: #ecf0f1;
+    border-radius: 14px;
+    margin: 5px 0;
+    transition: background 0.3s, color 0.3s;
+  }
+  #sidebar .button img {
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+  }
+  #sidebar .button:hover,
+  #sidebar .button.active {
+    background-color: #e67e22;
+  }
+  #main-content {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background-color: #ecf0f1;
+    display: flex;
+    flex-direction: column;
+  }
+  #header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #e67e22;
+    width: 7%;
+    padding: 10px 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    color: white;
+  }
+  #header button {
+    border: none;
+    background: none;
+    font-size: 14px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+  }
+  #header button img {
+    width: 20px;
+    height: 20px;
+    margin-right: 5px;
+  }
+  .table-container {
+    flex: 1;
+    overflow-x: auto;
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  table th, table td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+  }
+  table th {
+    background-color: #e67e22;
+    color: white;
+    font-weight: bold;
+    border-radius: 10px;
+  }
+  #footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 60px;
+    height: 60px;
+    background-repeat: no-repeat;
+  }
+  #corner {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 120px;
+    height: 80px;
+    background-repeat: no-repeat;
+  }
+
+  #view {
+  padding: 20px;
+}
+
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Two videos per row */
+  gap: 20px;
+}
+
+.grid-item {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: center;
+}
+
+.grid-item video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.grid-item p {
+  margin: 0;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.delete-form {
+  display: inline-block;
+  margin-right: 10px; /* Adjust spacing between buttons if necessary */
+}
+
+.delete-button {
+  background-color: #e74c3c; /* Red color */
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: bold;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.delete-button:hover {
+  background-color: #c0392b; /* Darker red on hover */
+}
+
+.edit-button {
+  background-color: black; /* Red color */
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: bold;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.edit-button:hover {
+  background-color: #e67e22; /* Darker red on hover */
+}
+
+/* Card styles */
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: calc(33.333% - 20px);
+  margin: 10px;
+  background-color: #f9f9f9;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  vertical-align: top;
+  text-align: center; /* Center-align text */
+}
+
+.card img {
+  width: 100%;
+  height: auto;
+  border-bottom: 1px solid #ddd;
+}
+
+.card-details {
+  padding: 10px;
+  flex: 1; /* Take up remaining space */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-details h3 {
+  font-size: 18px;
+  margin-bottom: 5px;
+}
+
+.card-details p {
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+.card-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+#preloader{
+ background-color: rgba(255, 255, 255, 0.5); /* Adjust opacity as needed */
+ backdrop-filter: blur(10px); /* Adjust blur intensity as needed */
+ background: url("../static/loader.gif") no-repeat center center;
+ position: fixed;
+ background-size: 30%;
+ width: 100%;
+ height: 100vh;
+ z-index: 100;
+
+}
+</style>
+
+
+</head>
+<body>
+  <div id="preloader"></div>
+
+  <div id="container">
+    <div id="sidebar">
+      <div class="title">Third Eye</div>
+      <div id="username" style="color: white;">{{user.username}}, {{user.hospital}}</div>
+      <button class="button" onclick="showPage('devices')"><img src="static/1.png" alt=""> Devices</button>
+      <button class="button" onclick="showPage('analysis')"><img src="static/2.png" alt=""> Analysis</button>
+      <button class="button" onclick="showPage('view')"><img src="static/3.png" alt=""> Camera View</button>
+      <button class="button" onclick="showPage('alerts')"><img src="static/4.png" alt=""> Alerts</button>
+      <button class="button" onclick="showPage('logs')"><img src="static/5.png" alt=""> Events</button>
+      <button class="button" onclick="showPage('recordings')"><img src="static/6.png" alt=""> Recordings</button>
+      <button class="button" onclick="showPage('staff')"><img src="static/7.png" alt=""> Staff Photos</button>
+      <button class="button" onclick="showPage('detectedstatic')"><img src="static/8.png" alt=""> Detected Images</button>
+      <button class="button" onclick="logout()"><img src="static/9.png" alt=""> Logout</button>
+    </div>
+    <div id="main-content">
+      {% if alert_message %}
+    <script>
+        // JavaScript code to display alert message
+        alert('{{ alert_message }}');
+    </script>
+    {% endif %}
+      <div id="content">
+        <div id="devices" class="page">
+          <div id="header">
+            <div>
+              <button onclick="addDevice()">Add Device</button>
+            </div>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Device Name</th>
+                  <th>Room Number</th>
+                  <th>IP Address</th>
+                  <th>Model Selection</th>
+                  <th>Update</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for device in devices %}
+                <tr>
+                  <td>{{ device[1] }}</td>
+                  <td>{{ device[2] }}</td>
+                  <td>{{ device[3] }}</td>
+                  <td>{{ device[4] }}</td>
+                  <td>
+                    <a href="{{ url_for('edit_device', device_id=device.0) }}">
+                      <button type="button" class="edit-button">Edit</button>
+                    </a>
+                    </td>
+                  <td>
+                    <form method="post" action="{{ url_for('delete_device', device_id=device[0]) }}">
+                      <button type="submit" class="delete-button">Delete</button>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div id="analysis" class="page" style="display: none;">
+        
+          <h2>Analysis</h2>
+          <div id="googlePieChart" style="width: 600px; height: 600px;"></div>
+          <canvas id="eventLineChart" width="600px" height="600px"></canvas>
+          <py-script>
+
+            # Importing required libraries
+            import matplotlib.pyplot as plt
+            from js import document
+            from datetime import datetime
+    
+            # Logs data passed as a JSON string
+            logs = {{ logsd | tojson | safe }}
+    
+            # Prepare data for plotting
+            timestamps = []
+            event_counts = []
+    
+            for log in logs:
+                timestamps.append(datetime.strptime(log['Timestamp'], "%Y-%m-%d %H:%M:%S"))  # Convert to datetime
+                event_counts.append(1 if log['EventType'] == 'fire' else 0)
+    
+            # Create a bar graph
+            plt.figure(figsize=(10, 5))
+            plt.bar(timestamps, event_counts, color='rgba(255, 99, 132, 0.6)')
+            plt.xlabel('Timestamp')
+            plt.ylabel('Number of Fire Events')
+            plt.title('Number of Fire Events Over Time')
+            plt.xticks(rotation=45)
+            plt.tight_layout()
+    
+            # Show the plot
+            plt.show()
+        </py-script>
+    
+        </div>
+        <div id="view" class="page" style="display: none;">
+      
+          <h2>Camera View</h2>
+          <div id="camera-info" data-num-cameras="{{ num_cameras }}"></div>
+
+          <div id="camera-container" class="grid-container"></div>
+            <!-- <script>console.log('started camera');</script>
+            {% for i in num_cameras %}
+            <div class="grid-item">
+              <img src="{{ url_for('video_feed', camera_index=i) }}" alt="Camera {{ i }}">
+              <p>Camera: {{i}}</p>
+            </div>
+          {% endfor %} -->
+           
+            
+        </div>
+        </div>
+        <div id="alerts" class="page" style="display: none;">
+          <div id="header">
+            <div>
+              <button onclick="addalerts()">Add Alerts</button>
+            </div>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Phone Number</th>
+                  <th>Department</th>
+                  <th>Hospital</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for alert in alerts %}
+                <tr>
+                  <td>{{ alert[1] }}</td>
+                  <td>{{ alert[2] }}</td>
+                  <td>{{ alert[3] }}</td>
+                  <td>{{ alert[4] }}</td>
+                  <td>{{ alert[5] }}</td>
+                  <td>{{ alert[6] }}</td>
+                  <td>
+                    <form method="post" action="{{ url_for('delete_alerts', alerts_id=alert[0]) }}">
+                      <button type="submit" class="delete-button">Delete</button>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div id="logs" class="page" style="display: none;">
+          <h2>Logs</h2>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Event Type</th>
+                  <th>Alerted</th>
+                  <th>Timestamp</th>
+                  <th>Date</th>
+                  <th>Video URL</th>
+                  <th>static</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for log in logs %}
+                <tr>
+                  <td>{{ log[1] }}</td>
+                  <td>{{ log[2] }}</td>
+                  <td>{{ log[3] }}</td>
+                  <td>{{ log[4] }}</td>
+                  <td>{{ log[5] }}</td>
+                  <td>{{ log[6] }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div id="recordings" class="page" style="display: none;">
+          <h2>Recordings</h2>
+        </div>
+        <div id="staff" class="page" style="display: none;">
+          <div id="header">
+            <div>
+              <button onclick="addstaff()">Add staff members</button>
+            </div>
+          </div>
+          <h2>Staff Photos</h2>
+          <div class="card-container">
+            {% for staff in staff %}
+            <div class="card mb-3">
+              
+              <img src="{{staff.7}}" alt="Staff Photo" class="card-img-top">
+              <div class="card-body">
+                <h3 class="card-title">{{ staff.1 }}</h3>
+                <p class="card-text">ID: {{ staff.2 }}</p>
+                <p class="card-text">Department: {{ staff.3 }}</p>
+                <p class="card-text">Hospital: {{ staff.4 }}</p>
+                <p class="card-text">Email: {{ staff.5 }}</p>
+                <p class="card-text">Phone: {{ staff.6 }}</p>
+                <form action="{{ url_for('delete_staff', staff_id=staff.2) }}" method="post" class="delete-form">
+                  <input type="hidden" name="_method" value="DELETE">
+                  <button type="submit" class="delete-button">Delete</button>
+                </form>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div id="detectedstatic" class="page" style="display: none;">
+          <h2>Detected static</h2>
+        </div>
+      </div>
+    </div>
+    <div id="footer"></div>
+    <div id="corner"></div>
+  </div>
+
+<script>
+function showPage(pageId) {
+    const pages = document.querySelectorAll('.page');
+    pages.forEach(page => {
+        page.style.display = page.id === pageId ? 'block' : 'none';
+        if (page.id === 'view' && page.style.display === 'block') {
+            loadCameraStreams(); // Load streams when Camera View is shown
+        }
+    });
+    const buttons = document.querySelectorAll('#sidebar .button');
+    buttons.forEach(button => {
+        button.classList.toggle('active', button.onclick.toString().includes(pageId));
+    });
+}
+
+function loadCameraStreams() {
+    // Get the raw data from the data attribute
+    const rawData = document.getElementById('camera-info').dataset.numCameras;
+    console.log('Raw data:', rawData);
+
+    // Convert the raw data string into a proper JavaScript array
+    const numCameras = rawData
+        .replace(/^\[|\]$/g, '')  // Remove leading and trailing brackets
+        .split(',')               // Split by commas
+        .map(item => item.trim().replace(/^'|'$/g, '')); // Trim whitespace and remove single quotes
+
+    console.log(numCameras);
+
+    console.log('Loading camera streams');
+   
+    const cameraContainer = document.getElementById('camera-container');
+    cameraContainer.innerHTML = ''; // Clear existing cameras
+
+    // Iterate over each camera ID in the numCameras array
+    numCameras.forEach((cameraId) => {
+        console.log(cameraId);
+        const cameraItem = document.createElement('div');
+        cameraItem.className = 'grid-item';
+        // Use cameraId in the image src and label
+        cameraItem.innerHTML = `<img src='/video_feed/${cameraId}' alt='Camera ${cameraId}'><p>Camera: ${cameraId}</p>`;
+        cameraContainer.appendChild(cameraItem);
+    });
+}
+
+
+
+</script>
+ <script>
+  //  function showPage(pageId) {
+  //       const pages = document.querySelectorAll('.page');
+  //       pages.forEach(page => {
+  //           page.style.display = page.id === pageId ? 'block' : 'none';
+  //       });
+  //       const buttons = document.querySelectorAll('#sidebar .button');
+  //       buttons.forEach(button => {
+  //           button.classList.toggle('active', button.onclick.toString().includes(pageId));
+  //       });
+  //   }
+
+
+    // Load Google Charts library and initialize
+google.charts.load('current', {'packages': ['corechart']});
+
+// Set a callback to run when the Google Charts library is loaded
+google.charts.setOnLoadCallback(drawPieChart);
+
+// Function to draw the pie chart
+function drawPieChart() {
+    // Define the data for the pie chart
+    const data = google.visualization.arrayToDataTable([
+        ['Event Type', 'Count'],
+        ['Fall Detection', 3],
+        ['Staff monitering', 1]
+    ]);
+
+    // Define options for the pie chart
+    const options = {
+        title: 'Event Types',
+        pieSliceText: 'label',
+        slices: {
+            0: { color: '#ffcd56' },
+            1: { color: '#36a2eb' },
+            2: { color: '#ff6384' }
+        },
+        width: 400,
+        height: 400
+    };
+
+    // Select the div container where the pie chart will be drawn
+    const chartContainer = document.getElementById('googlePieChart');
+
+    // Instantiate and draw the pie chart
+    const chart = new google.visualization.PieChart(chartContainer);
+    chart.draw(data, options);
+}
+
+function addDevice() {
+        window.location.href = "/device_add";
+    }
+function addalerts() {
+        window.location.href = "/alerts_add";
+    }
+function addstaff() {
+        window.location.href = "/staff_add";
+    }
+
+    function logout() {
+
+        window.location.href = '/logout';
+    }
+
+
+  // Disable back button functionality
+  history.pushState(null, null, document.URL);
+  window.addEventListener('popstate', function () {
+    history.pushState(null, null, document.URL);
+  });
+
+
+  </script>
+
+  <script>
+    var loader = document.getElementById("preloader");
+    window.addEventListener("load", function(){
+      loader.style.display = "none";
+    })
+  </script>
+
+
+<script>
+  async function checkForAlerts() {
+      const response = await fetch('/send-message'); // Assume you have an endpoint to fetch latest alerts
+      const data = await response.json();
+
+      if (data.message) {
+          alert(data.message); // Display the alert in a pop-up
+      }
+  }
+
+  setInterval(checkForAlerts, 5000); // Check for alerts every 5 seconds
+</script>
+</body>
+</html>

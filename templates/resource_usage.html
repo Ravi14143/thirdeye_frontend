@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resource Usage</title>
+</head>
+<body>
+    <h1>Resource Usage</h1>
+    <h2>CPU Usage: {{ cpu_usage }}%</h2>
+    <h2>RAM Usage: {{ ram_usage }}%</h2>
+    
+    <h2>GPU Usage</h2>
+    {% for gpu in gpu_usage %}
+        <p>Total: {{ gpu.total }} MB</p>
+        <p>Free: {{ gpu.free }} MB</p>
+        <p>Used: {{ gpu.used }} MB</p>
+    {% endfor %}
+
+    <h2>Process Usage</h2>
+    <ul>
+        {% for proc in process_usage %}
+            <li>PID: {{ proc.pid }}, Name: {{ proc.name }}, CPU: {{ proc.cpu_percent }}%, RAM: {{ proc.memory_info }} MB</li>
+        {% endfor %}
+    </ul>
+
+    <a href="{{ url_for('home') }}">Back to Home</a>
+</body>
+</html>
