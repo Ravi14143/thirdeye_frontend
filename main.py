@@ -1,13 +1,19 @@
-from flask import Flask, render_template, request, redirect, url_for, session, Response, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, Response, jsonify, flash,send_from_directory
 import datetime
 import cv2
 import sqlitecloud
 import requests
 import os
+import time
 from functools import wraps
 import logging
 import numpy as np
 import threading
+import signal
+import subprocess
+import sys
+import psutil
+from app import run_app
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -17,6 +23,29 @@ app.secret_key = 'a643ab7db1402aa452bdc9ec40a9a62e'
 
 # Set CUDA_LAUNCH_BLOCKING=1 for more accurate CUDA error reporting
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+
+def stop_and_run_app():
+    print("Stopping existing app.py and starting a new instance...")
+
+    # Find and terminate existing app.py process
+    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+        # Check if the process is app.py
+        if 'app.py' in proc.info['cmdline']:
+            print(f"Killing existing app.py with PID: {proc.info['pid']}")
+            proc.terminate()  # Send a termination signal
+
+            # Wait for the process to terminate
+            proc.wait()  # Wait for the process to terminate
+            print(f"app.py with PID {proc.info['pid']} has been terminated.")
+
+            # Optional: Wait a moment to ensure the process has completely exited
+            time.sleep(1)  # Adjust this sleep duration as needed
+
+    # After terminating all existing processes, start a new instance
+    print("Starting a new instance of app.py...")
+    run_app()  # Run the Flask app in the main thread
+
+
 
 # Connect to SQLite database
 def get_db_connection():
@@ -238,6 +267,25 @@ def home():
     return render_template('home.html', user=user_details, devices=devices, logs=logs, logsd=logs_data, alerts=alerts, staff=staff, num_cameras=[device["id"] for device in devices])
 
 
+@app.route('/api/logs')
+@login_required  # Ensuring that the user is logged in before accessing the logs
+def api_logs():
+    conn = get_db_connection()
+
+    # Fetch user details
+    email = session['email']
+    user = conn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
+    hospital = user['hospital']
+    
+    # Fetch logs associated with the user
+    logs = conn.execute('SELECT * FROM Events WHERE hospital = ?', (hospital,)).fetchall()
+    conn.close()
+
+
+    return jsonify(logs)  # Return the formatted logs data as JSON
+
+
+
 @app.route('/device_add', methods=['GET', 'POST'])
 @login_required
 def device_add():
@@ -269,6 +317,7 @@ def device_add():
         # Close the cursor and database connection
         cursor.close()
         conn.close()
+        stop_and_run_app()
 
         return redirect(url_for('home'))
 
@@ -387,6 +436,8 @@ def edit_device(device_id):
     device = cursor.fetchone()
     cursor.close()
     conn.close()
+    stop_and_run_app()
+
     return render_template('device_edit.html', device=device)
 
 @app.route('/update_device/<int:device_id>', methods=['POST'])
@@ -408,6 +459,8 @@ def update_device(device_id):
     conn.commit()
     cursor.close()
     conn.close()
+    stop_and_run_app()
+
     return redirect(url_for('home'))
 
 @app.route('/delete_device/<int:device_id>', methods=['POST'])
@@ -419,6 +472,8 @@ def delete_device(device_id):
     conn.commit()
     cursor.close()
     conn.close()
+    stop_and_run_app()
+
     return redirect(url_for('home'))
 
 @app.route('/delete_alerts/<int:alerts_id>', methods=['POST'])
@@ -444,6 +499,37 @@ def delete_staff(staff_id):
     return redirect(url_for('home'))
 
 
+BASE_IMAGE_DIR = r"events\images\detected"
+BASE_VIDEO_DIR = r"events\videos"  # Update with correct path for videos
+
+def read_directory(dir_path):
+    result = {}
+    for entry in os.listdir(dir_path):
+        full_path = os.path.join(dir_path, entry)
+        if os.path.isdir(full_path):
+            result[entry] = read_directory(full_path)  # Recurse into subdirectory
+        else:
+            result[entry] = full_path  # Store file path
+    return result
+
+@app.route('/api/files/images')
+def files_images():
+    directory_structure = read_directory(BASE_IMAGE_DIR)
+    return jsonify(directory_structure)
+
+@app.route('/api/files/videos')
+def files_videos():
+    directory_structure = read_directory(BASE_VIDEO_DIR)
+    return jsonify(directory_structure)
+
+@app.route('/events/images/<path:filename>')
+def serve_image(filename):
+    return send_from_directory(BASE_IMAGE_DIR, filename)
+
+@app.route('/events/videos/<path:filename>')
+def serve_video(filename):
+    return send_from_directory(BASE_VIDEO_DIR, filename)
+
 
 @app.route('/logout')
 def logout():
@@ -458,6 +544,7 @@ def page_not_found(e):
 @app.errorhandler(500)
 def internal_server_error(e):
     return f"Error loading the requested file: {e}", 500
+
 
 
 
