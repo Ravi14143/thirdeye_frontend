@@ -1,5 +1,13 @@
 Flask
+torch
+supervision
+ultralytics
 opencv-python
 requests
 numpy
 sqlitecloud
+openvino
+logging
+sinch
+flask-socketio
+psutil
