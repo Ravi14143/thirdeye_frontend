@@ -13,6 +13,9 @@ import signal
 import subprocess
 import sys
 import psutil
+from app import run_app
+import boto3
+from botocore.exceptions import ClientError
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -22,6 +25,28 @@ app.secret_key = 'a643ab7db1402aa452bdc9ec40a9a62e'
 
 # Set CUDA_LAUNCH_BLOCKING=1 for more accurate CUDA error reporting
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+
+def stop_and_run_app():
+    print("Stopping existing app.py and starting a new instance...")
+
+    # Find and terminate existing app.py process
+    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+        # Check if the process is app.py
+        if 'app.py' in proc.info['cmdline']:
+            print(f"Killing existing app.py with PID: {proc.info['pid']}")
+            proc.terminate()  # Send a termination signal
+
+            # Wait for the process to terminate
+            proc.wait()  # Wait for the process to terminate
+            print(f"app.py with PID {proc.info['pid']} has been terminated.")
+
+            # Optional: Wait a moment to ensure the process has completely exited
+            time.sleep(1)  # Adjust this sleep duration as needed
+
+    # After terminating all existing processes, start a new instance
+    print("Starting a new instance of app.py...")
+    run_app()  # Run the Flask app in the main thread
+
 
 
 # Connect to SQLite database
@@ -294,6 +319,7 @@ def device_add():
         # Close the cursor and database connection
         cursor.close()
         conn.close()
+        stop_and_run_app()
 
         return redirect(url_for('home'))
 
@@ -412,6 +438,8 @@ def edit_device(device_id):
     device = cursor.fetchone()
     cursor.close()
     conn.close()
+    stop_and_run_app()
+
     return render_template('device_edit.html', device=device)
 
 @app.route('/update_device/<int:device_id>', methods=['POST'])
@@ -433,6 +461,7 @@ def update_device(device_id):
     conn.commit()
     cursor.close()
     conn.close()
+    stop_and_run_app()
 
     return redirect(url_for('home'))
 
@@ -445,6 +474,7 @@ def delete_device(device_id):
     conn.commit()
     cursor.close()
     conn.close()
+    stop_and_run_app()
 
     return redirect(url_for('home'))
 
@@ -471,36 +501,105 @@ def delete_staff(staff_id):
     return redirect(url_for('home'))
 
 
-BASE_IMAGE_DIR = r"events\images\detected"
-BASE_VIDEO_DIR = r"events\videos"  # Update with correct path for videos
+# BASE_IMAGE_DIR = r"events\images\detected"
+# BASE_VIDEO_DIR = r"events\videos"  # Update with correct path for videos
 
-def read_directory(dir_path):
+# def read_directory(dir_path):
+#     result = {}
+#     for entry in os.listdir(dir_path):
+#         full_path = os.path.join(dir_path, entry)
+#         if os.path.isdir(full_path):
+#             result[entry] = read_directory(full_path)  # Recurse into subdirectory
+#         else:
+#             result[entry] = full_path  # Store file path
+#     return result
+
+# @app.route('/api/files/images')
+# def files_images():
+#     directory_structure = read_directory(BASE_IMAGE_DIR)
+#     return jsonify(directory_structure)
+
+# @app.route('/api/files/videos')
+# def files_videos():
+#     directory_structure = read_directory(BASE_VIDEO_DIR)
+#     return jsonify(directory_structure)
+
+# @app.route('/events/images/<path:filename>')
+# def serve_image(filename):
+#     return send_from_directory(BASE_IMAGE_DIR, filename)
+
+# @app.route('/events/videos/<path:filename>')
+# def serve_video(filename):
+#     return send_from_directory(BASE_VIDEO_DIR, filename)
+
+
+
+# Replace with your S3 bucket name
+S3_BUCKET_NAME = "your-s3-bucket-name"
+
+# Initialize S3 client
+s3_client = boto3.client("s3")
+
+def list_s3_files(prefix):
+    """
+    List files in an S3 bucket under a specific prefix (folder path).
+    Returns a dictionary structure of files and their pre-signed URLs.
+    """
     result = {}
-    for entry in os.listdir(dir_path):
-        full_path = os.path.join(dir_path, entry)
-        if os.path.isdir(full_path):
-            result[entry] = read_directory(full_path)  # Recurse into subdirectory
-        else:
-            result[entry] = full_path  # Store file path
+    try:
+        response = s3_client.list_objects_v2(Bucket=S3_BUCKET_NAME, Prefix=prefix)
+        for obj in response.get("Contents", []):
+            file_key = obj["Key"]
+            file_name = os.path.basename(file_key)
+            # Generate a pre-signed URL for each file
+            result[file_name] = generate_presigned_url(file_key)
+    except ClientError as e:
+        app.logger.error(f"Error listing files in S3: {e}")
     return result
+
+def generate_presigned_url(file_key, expiration=3600):
+    """
+    Generate a pre-signed URL to access a file in S3.
+    """
+    try:
+        response = s3_client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": S3_BUCKET_NAME, "Key": file_key},
+            ExpiresIn=expiration,
+        )
+        return response
+    except ClientError as e:
+        app.logger.error(f"Error generating pre-signed URL: {e}")
+        return None
 
 @app.route('/api/files/images')
 def files_images():
-    directory_structure = read_directory(BASE_IMAGE_DIR)
+    # List all files under the "images" folder in S3
+    directory_structure = list_s3_files("events/images/detected")
     return jsonify(directory_structure)
 
 @app.route('/api/files/videos')
 def files_videos():
-    directory_structure = read_directory(BASE_VIDEO_DIR)
+    # List all files under the "videos" folder in S3
+    directory_structure = list_s3_files("events/videos")
     return jsonify(directory_structure)
 
 @app.route('/events/images/<path:filename>')
 def serve_image(filename):
-    return send_from_directory(BASE_IMAGE_DIR, filename)
+    # Redirect to pre-signed URL for the image file
+    file_key = f"events/images/detected/{filename}"
+    presigned_url = generate_presigned_url(file_key)
+    return redirect(presigned_url) if presigned_url else ("File not found", 404)
 
 @app.route('/events/videos/<path:filename>')
 def serve_video(filename):
-    return send_from_directory(BASE_VIDEO_DIR, filename)
+    # Redirect to pre-signed URL for the video file
+    file_key = f"events/videos/{filename}"
+    presigned_url = generate_presigned_url(file_key)
+    return redirect(presigned_url) if presigned_url else ("File not found", 404)
+
+
+
 
 
 @app.route('/logout')
