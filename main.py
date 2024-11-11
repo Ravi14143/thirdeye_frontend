@@ -535,34 +535,28 @@ def delete_staff(staff_id):
 
 
 # Replace with your S3 bucket name
-S3_BUCKET_NAME = "your-s3-bucket-name"
+S3_BUCKET_NAME = "thirdeyecctv"
 
-# Initialize S3 client
-s3_client = boto3.client("s3")
-
+s3 = boto3.client('s3', 
+    aws_access_key_id='AKIA55GEPJAF2DFGXMF2',  # Your Access Key ID
+    aws_secret_access_key='G1rrio9sNged4i/hl4jpoqEx4qrMJT2Zm8oIs3n3',  # Your Secret Access Key
+    region_name='ap-south-1'  # Replace with your AWS region
+)
 def list_s3_files(prefix):
-    """
-    List files in an S3 bucket under a specific prefix (folder path).
-    Returns a dictionary structure of files and their pre-signed URLs.
-    """
     result = {}
     try:
-        response = s3_client.list_objects_v2(Bucket=S3_BUCKET_NAME, Prefix=prefix)
+        response = s3.list_objects_v2(Bucket=S3_BUCKET_NAME, Prefix=prefix)
         for obj in response.get("Contents", []):
             file_key = obj["Key"]
             file_name = os.path.basename(file_key)
-            # Generate a pre-signed URL for each file
             result[file_name] = generate_presigned_url(file_key)
     except ClientError as e:
         app.logger.error(f"Error listing files in S3: {e}")
     return result
 
 def generate_presigned_url(file_key, expiration=3600):
-    """
-    Generate a pre-signed URL to access a file in S3.
-    """
     try:
-        response = s3_client.generate_presigned_url(
+        response = s3.generate_presigned_url(
             "get_object",
             Params={"Bucket": S3_BUCKET_NAME, "Key": file_key},
             ExpiresIn=expiration,
@@ -574,31 +568,25 @@ def generate_presigned_url(file_key, expiration=3600):
 
 @app.route('/api/files/images')
 def files_images():
-    # List all files under the "images" folder in S3
     directory_structure = list_s3_files("events/images/detected")
     return jsonify(directory_structure)
 
 @app.route('/api/files/videos')
 def files_videos():
-    # List all files under the "videos" folder in S3
     directory_structure = list_s3_files("events/videos")
     return jsonify(directory_structure)
 
 @app.route('/events/images/<path:filename>')
 def serve_image(filename):
-    # Redirect to pre-signed URL for the image file
     file_key = f"events/images/detected/{filename}"
     presigned_url = generate_presigned_url(file_key)
     return redirect(presigned_url) if presigned_url else ("File not found", 404)
 
 @app.route('/events/videos/<path:filename>')
 def serve_video(filename):
-    # Redirect to pre-signed URL for the video file
     file_key = f"events/videos/{filename}"
     presigned_url = generate_presigned_url(file_key)
     return redirect(presigned_url) if presigned_url else ("File not found", 404)
-
-
 
 
 
