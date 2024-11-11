@@ -11,3 +11,4 @@ logging
 sinch
 flask-socketio
 psutil
+bot3
