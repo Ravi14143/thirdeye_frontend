@@ -13,7 +13,6 @@ import signal
 import subprocess
 import sys
 import psutil
-from app import run_app
 import boto3
 from botocore.exceptions import ClientError
 
@@ -25,29 +24,6 @@ app.secret_key = 'a643ab7db1402aa452bdc9ec40a9a62e'
 
 # Set CUDA_LAUNCH_BLOCKING=1 for more accurate CUDA error reporting
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
-
-def stop_and_run_app():
-    print("Stopping existing app.py and starting a new instance...")
-
-    # Find and terminate existing app.py process
-    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-        # Check if the process is app.py
-        if 'app.py' in proc.info['cmdline']:
-            print(f"Killing existing app.py with PID: {proc.info['pid']}")
-            proc.terminate()  # Send a termination signal
-
-            # Wait for the process to terminate
-            proc.wait()  # Wait for the process to terminate
-            print(f"app.py with PID {proc.info['pid']} has been terminated.")
-
-            # Optional: Wait a moment to ensure the process has completely exited
-            time.sleep(1)  # Adjust this sleep duration as needed
-
-    # After terminating all existing processes, start a new instance
-    print("Starting a new instance of app.py...")
-    run_app()  # Run the Flask app in the main thread
-
-
 
 # Connect to SQLite database
 def get_db_connection():
@@ -319,7 +295,6 @@ def device_add():
         # Close the cursor and database connection
         cursor.close()
         conn.close()
-        stop_and_run_app()
 
         return redirect(url_for('home'))
 
@@ -438,7 +413,6 @@ def edit_device(device_id):
     device = cursor.fetchone()
     cursor.close()
     conn.close()
-    stop_and_run_app()
 
     return render_template('device_edit.html', device=device)
 
@@ -461,7 +435,6 @@ def update_device(device_id):
     conn.commit()
     cursor.close()
     conn.close()
-    stop_and_run_app()
 
     return redirect(url_for('home'))
 
@@ -474,7 +447,6 @@ def delete_device(device_id):
     conn.commit()
     cursor.close()
     conn.close()
-    stop_and_run_app()
 
     return redirect(url_for('home'))
 
@@ -538,9 +510,9 @@ def delete_staff(staff_id):
 S3_BUCKET_NAME = "thirdeyecctv"
 
 s3 = boto3.client('s3', 
-    aws_access_key_id='AKIA55GEPJAF2DFGXMF2',  # Your Access Key ID
-    aws_secret_access_key='G1rrio9sNged4i/hl4jpoqEx4qrMJT2Zm8oIs3n3',  # Your Secret Access Key
-    region_name='ap-south-1'  # Replace with your AWS region
+    aws_access_key_id='AKIA452UNM3YNBN2JHIR',  # Your Access Key ID
+    aws_secret_access_key='x2dToXKi+tVKlQZk5NKv2BMFPP7ol45txSIjmLkH',  # Your Secret Access Key
+    region_name='eu-north-1'  # Replace with your AWS region
 )
 def list_s3_files(prefix):
     result = {}
