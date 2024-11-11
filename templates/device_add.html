@@ -163,15 +163,15 @@ footer {
       <form class="form" action="/device_add" id="deviceForm" method="post">
         <div class="form-group">
           <label for="deviceNumber">Device Number</label>
-          <input type="text" id="deviceNumber" placeholder="Device Number" name="deviceNumber">
+          <input type="text" id="deviceNumber" placeholder="Device Number" name="deviceNumber" required>
         </div>
         <div class="form-group">
           <label for="roomNumber">Room Number/Name</label>
-          <input type="text" id="roomNumber" placeholder="Room Number/Name" name="roomNumber">
+          <input type="text" id="roomNumber" placeholder="Room Number/Name" name="roomNumber" required>
         </div>
         <div class="form-group">
           <label for="ipAddress">IP Address</label>
-          <input type="text" id="ipAddress" placeholder="IP Address" name="ipAddress">
+          <input type="text" id="ipAddress" placeholder="CCTV IP Address (e.g., rtsp://...)" name="ipAddress" required>
         </div>
        
         <div class="form-group">
@@ -212,6 +212,20 @@ document.addEventListener('click', function(event) {
   const dropdownMenu = document.getElementById('alertSettingDropdown');
   if (!event.target.matches('.dropdown-toggle')) {
     dropdownMenu.classList.remove('show');
+  }
+});
+
+// IP Address validation
+document.getElementById("deviceForm").addEventListener("submit", function(event) {
+  const ipAddress = document.getElementById("ipAddress").value;
+  
+  // Regular expression to match URLs starting with rtsp, http, or https
+  const urlPattern = /^(rtsp|http|https):\/\/.+$/;
+
+  // Validate the IP Address field
+  if (!urlPattern.test(ipAddress)) {
+    event.preventDefault();  // Stop form submission
+    alert("Please enter a valid IP address that starts with rtsp, http, or https.");
   }
 });
 

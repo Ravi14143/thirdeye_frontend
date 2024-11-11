@@ -5,8 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard</title>
 <script src="https://www.gstatic.com/charts/loader.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script src="https://cdn.socket.io/4.4.0/socket.io.min.js"></script>
+<script>
+  function checkForAlert() {
+    fetch('/check-alert')
+        .then(response => {
+            // Log the response text for debugging
+            return response.text().then(text => {
+                console.log('Response:', text); // Add this line for debugging
+                return JSON.parse(text); // Try parsing the response as JSON
+            });
+        })
+        .then(data => {
+            if (data.message) {
+                alert(data.message); // Display the alert message
+            }
+        })
+        .catch(error => console.error('Error fetching alert:', error));
+}
 
 
+  // Poll every 5 seconds
+  setInterval(checkForAlert, 5000);
+</script>
 <style>
   body {
     font-family: 'Arial', sans-serif;
@@ -262,6 +284,108 @@
  z-index: 100;
 
 }
+
+
+/* File Manager Styles */
+.file-manager {
+    margin-left: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Modern font */
+    background: white; /* White background for clarity */
+    border-radius: 8px; /* Rounded corners */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+    padding: 15px;
+}
+
+.folder, .sub-folder, .file {
+    margin: 10px 0; /* Increased spacing for clarity */
+    padding: 8px 10px; /* Padding for clickable areas */
+    border-radius: 4px; /* Rounded corners for items */
+    transition: background-color 0.3s; /* Smooth transition for hover effects */
+}
+
+.folder:hover, .sub-folder:hover {
+    background-color: #e9f5ff; /* Light blue on hover */
+}
+
+.file {
+    background-color: #f7f7f7; /* Slightly off-white for files */
+}
+
+.folder h3, .sub-folder h4, .sub-folder h5, .sub-folder h6 {
+    cursor: pointer;
+    margin: 0;
+    font-weight: normal; /* Normal weight for better readability */
+}
+
+.file a {
+    text-decoration: none;
+    color: #007BFF; /* Bootstrap primary color */
+    font-weight: bold; /* Emphasize links */
+}
+
+.file a:hover {
+    text-decoration: underline;
+    color: #0056b3; /* Darker shade on hover */
+}
+
+/* Hidden class for collapsible folders */
+.hidden {
+    display: none;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000; /* Higher z-index for modals */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.9);
+    padding-top: 60px; /* Space for modal close button */
+    justify-content: center; /* Center the modal content */
+    align-items: center; /* Center the modal content */
+}
+
+.modal-content {
+    margin: auto;
+    display: block;
+    width: 80%;
+    max-width: 700px;
+    border-radius: 8px; /* Rounded corners for modal */
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2); /* Soft shadow for modal */
+}
+
+.close {
+    position: absolute;
+    top: 15px;
+    right: 35px;
+    color: #f1f1f1;
+    font-size: 40px;
+    font-weight: bold;
+    transition: color 0.3s; /* Smooth color transition */
+}
+
+.close:hover,
+.close:focus {
+    color: #bbb; /* Change color on hover */
+    text-decoration: none;
+    cursor: pointer; /* Pointer cursor on hover */
+}
+
+/* Responsive Styles */
+@media (max-width: 600px) {
+    .modal-content {
+        width: 90%; /* Use more width on small screens */
+    }
+
+    .file-manager {
+        margin-left: 10px; /* Reduce left margin on small screens */
+    }
+}
+
 </style>
 
 
@@ -335,40 +459,111 @@
         <div id="analysis" class="page" style="display: none;">
         
           <h2>Analysis</h2>
-          <div id="googlePieChart" style="width: 600px; height: 600px;"></div>
-          <canvas id="eventLineChart" width="600px" height="600px"></canvas>
-          <py-script>
+          
+          <div id="pie_chart_div" style="width: 1200px; height: 700px;"></div>
+          <div id="bar_chart_div" style="width: 1200px; height: 700px;"></div>
+          <div id="line_chart_div" style="width: 1200px; height: 700px;"></div>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="script.js"></script>
+        <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+        <script>
+          // Load the Visualization API and the corechart and bar packages.
+          google.charts.load('current', {'packages':['corechart', 'bar']});
+      
+          // Set a callback to run when the Google Visualization API is loaded.
+          google.charts.setOnLoadCallback(drawCharts);
+      
+          // Sample data, replace this with your actual logs
+          const logs = JSON.parse('{{ logsd | tojson }}');
+          console.log(logs);
+      
+          function countEventTypes(logs) {
+              const eventCounts = {};
+      
+              logs.forEach(log => {
+                  const eventType = log.EventType;
+                  eventCounts[eventType] = (eventCounts[eventType] || 0) + 1;
+              });
+      
+              return eventCounts;
+          }
+      
+          function drawCharts() {
+              // Count event types
+              const eventCounts = countEventTypes(logs);
+      
+              // Prepare data for charts
+              const dataArray = [['Event Type', 'Count']].concat(Object.entries(eventCounts));
+              const data = google.visualization.arrayToDataTable(dataArray);
+      
+              // Set options for the Pie chart
+              const pieOptions = {
+                  title: 'Event Type Counts',
+                  is3D: true,
+                  width: 800,  // Increased width
+                  height: 600  // Increased height
+              };
+      
+              // Set options for the Bar chart
+              const barOptions = {
+                  title: 'Event Type Counts',
+                  hAxis: { title: 'Count' },
+                  vAxis: { title: 'Event Type' },
+                  legend: 'none',
+                  width: 800,  // Increased width
+                  height: 600  // Increased height
+              };
+      
+              // Draw the Pie chart
+              const pieChart = new google.visualization.PieChart(document.getElementById('pie_chart_div'));
+              pieChart.draw(data, pieOptions);
+      
+              // Draw the Bar chart
+              const barChart = new google.visualization.BarChart(document.getElementById('bar_chart_div'));
+              barChart.draw(data, barOptions);
+      
+              // Prepare data for the Line chart (using event count over timestamps)
+    const timestampCounts = logs.reduce((acc, log) => {
+        const timestamp = new Date(log.Timestamp);
+        const dateStr = timestamp.toISOString().split('T')[0]; // Use ISO format for date
+        acc[dateStr] = (acc[dateStr] || 0) + 1;
+        return acc;
+    }, {});
 
-            # Importing required libraries
-            import matplotlib.pyplot as plt
-            from js import document
-            from datetime import datetime
-    
-            # Logs data passed as a JSON string
-            logs = {{ logsd | tojson | safe }}
-    
-            # Prepare data for plotting
-            timestamps = []
-            event_counts = []
-    
-            for log in logs:
-                timestamps.append(datetime.strptime(log['Timestamp'], "%Y-%m-%d %H:%M:%S"))  # Convert to datetime
-                event_counts.append(1 if log['EventType'] == 'fire' else 0)
-    
-            # Create a bar graph
-            plt.figure(figsize=(10, 5))
-            plt.bar(timestamps, event_counts, color='rgba(255, 99, 132, 0.6)')
-            plt.xlabel('Timestamp')
-            plt.ylabel('Number of Fire Events')
-            plt.title('Number of Fire Events Over Time')
-            plt.xticks(rotation=45)
-            plt.tight_layout()
-    
-            # Show the plot
-            plt.show()
-        </py-script>
+    // Prepare data for the Line chart
+    const lineDataArray = [['Date', 'Event Count']]
+        .concat(Object.entries(timestampCounts).map(([date, count]) => [new Date(date + 'T00:00:00'), count]));
+    const lineData = google.visualization.arrayToDataTable(lineDataArray);
+
+    // Set options for the Line chart
+    const lineOptions = {
+        title: 'Event Count Over Time',
+        hAxis: {
+            title: 'Date',
+            format: 'MMM dd',  // Format to display month and day (e.g., "Oct 05")
+            ticks: [],          // Start with an empty array for custom ticks
+        },
+        vAxis: { title: 'Event Count' },
+        legend: 'none',
+        width: 1200,  // Increased width
+        height: 600   // Increased height
+    };
+
+    // Define custom ticks based on your data
+    const customTicks = Object.keys(timestampCounts).map(dateStr => new Date(dateStr + 'T00:00:00'));
+    lineOptions.hAxis.ticks = customTicks;
+
+    // Draw the Line chart
+    const lineChart = new google.visualization.LineChart(document.getElementById('line_chart_div'));
+    lineChart.draw(lineData, lineOptions);
+
+          }
+      </script>
+      
     
         </div>
+
+
         <div id="view" class="page" style="display: none;">
       
           <h2>Camera View</h2>
@@ -455,8 +650,16 @@
           </div>
         </div>
         <div id="recordings" class="page" style="display: none;">
-          <h2>Recordings</h2>
+          <h2>Detected Videos</h2>
+          <div class="file-manager" id="video-file-manager"></div>
         </div>
+
+        <div id="videoModal" class="modal">
+          <span class="close" id="videoModalClose">&times;</span>
+          <video class="modal-content" id="modalVideo" controls></video>
+      </div>
+
+      
         <div id="staff" class="page" style="display: none;">
           <div id="header">
             <div>
@@ -486,13 +689,140 @@
           </div>
         </div>
         <div id="detectedstatic" class="page" style="display: none;">
-          <h2>Detected static</h2>
+            <h2>Detected Images</h2>
+            <div class="file-manager" id="image-file-manager"></div>
         </div>
+
+        <div id="imageModal" class="modal">
+          <span class="close" id="imageModalClose">&times;</span>
+          <img class="modal-content" id="modalImage" alt="Image">
+      </div>
+           
+        </div>
+
+    </div>
       </div>
     </div>
     <div id="footer"></div>
     <div id="corner"></div>
   </div>
+
+  <script>
+    async function fetchFileStructure(url) {
+        const response = await fetch(url);
+        return await response.json();
+    }
+    
+    function createFileStructure(parentElement, fileData, isVideo = false, folderName = 'Root', currentPath = '') {
+        const folderDiv = document.createElement('div');
+        folderDiv.classList.add('folder');
+    
+        const folderHeader = document.createElement('h3');
+        folderHeader.innerText = folderName;
+    
+        // Toggle subfolder visibility on click
+        folderHeader.addEventListener('click', () => {
+            const subFolder = folderDiv.querySelector('.sub-folder');
+            if (subFolder) {
+                subFolder.classList.toggle('hidden');
+            }
+        });
+    
+        folderDiv.appendChild(folderHeader);
+        const subFolderDiv = document.createElement('div');
+        subFolderDiv.classList.add('sub-folder', 'hidden');
+    
+        Object.entries(fileData).forEach(([key, value]) => {
+            const newPath = currentPath ? `${currentPath}/${key}` : key;
+    
+            if (typeof value === 'string') {
+                const fileDiv = document.createElement('div');
+                fileDiv.classList.add('file');
+                const fileLink = document.createElement('a');
+                
+                fileLink.href = isVideo
+                    ? `events/videos/detected/${newPath}`
+                    : `events/images/detected/${newPath}`;
+                fileLink.innerText = key;
+    
+                fileDiv.appendChild(fileLink);
+                subFolderDiv.appendChild(fileDiv);
+    
+                if (isVideo) {
+                    fileLink.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        showVideoInModal(fileLink.href);
+                    });
+                } else {
+                    fileLink.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        showImageInModal(fileLink.href);
+                    });
+                }
+            } else {
+                createFileStructure(subFolderDiv, value, isVideo, key, newPath);
+            }
+        });
+    
+        folderDiv.appendChild(subFolderDiv);
+        parentElement.appendChild(folderDiv);
+    }
+    
+    function showImageInModal(imagePath) {
+        const modal = document.getElementById('imageModal');
+        const modalImg = document.getElementById('modalImage');
+        modalImg.src = imagePath;
+        
+        modalImg.onload = () => {
+            modal.style.display = "block";
+        };
+        modalImg.onerror = (event) => {
+            console.error("Error loading image:", imagePath, event);
+            alert(`Image could not be loaded: ${imagePath}`);
+            modal.style.display = "none";
+        };
+    
+        modal.style.display = "block";
+    }
+    
+    function showVideoInModal(videoPath) {
+        const modal = document.getElementById('videoModal');
+        const modalVideo = document.getElementById('modalVideo');
+        modalVideo.src = videoPath;
+    
+        modalVideo.onloadeddata = () => {
+            modal.style.display = "block";
+        };
+        modalVideo.onerror = (event) => {
+            console.error("Error loading video:", videoPath, event);
+            alert(`Video could not be loaded: ${videoPath}`);
+            modal.style.display = "none";
+        };
+    
+        modal.style.display = "block";
+    }
+    
+    // Close modal for images
+    document.getElementById('imageModalClose').onclick = function() {
+        const modal = document.getElementById('imageModal');
+        modal.style.display = "none";
+    }
+    
+    // Close modal for videos
+    document.getElementById('videoModalClose').onclick = function() {
+        const modal = document.getElementById('videoModal');
+        modal.style.display = "none";
+    }
+    
+    // Initialize the file manager with the fetched data for images and videos
+    fetchFileStructure('/api/files/images').then(data => {
+        createFileStructure(document.getElementById('image-file-manager'), data, false);
+    });
+    
+    fetchFileStructure('/api/files/videos').then(data => {
+        createFileStructure(document.getElementById('video-file-manager'), data, true);
+    });
+    </script>
 
 <script>
 function showPage(pageId) {
@@ -553,44 +883,7 @@ function loadCameraStreams() {
   //       });
   //   }
 
-
-    // Load Google Charts library and initialize
-google.charts.load('current', {'packages': ['corechart']});
-
-// Set a callback to run when the Google Charts library is loaded
-google.charts.setOnLoadCallback(drawPieChart);
-
-// Function to draw the pie chart
-function drawPieChart() {
-    // Define the data for the pie chart
-    const data = google.visualization.arrayToDataTable([
-        ['Event Type', 'Count'],
-        ['Fall Detection', 3],
-        ['Staff monitering', 1]
-    ]);
-
-    // Define options for the pie chart
-    const options = {
-        title: 'Event Types',
-        pieSliceText: 'label',
-        slices: {
-            0: { color: '#ffcd56' },
-            1: { color: '#36a2eb' },
-            2: { color: '#ff6384' }
-        },
-        width: 400,
-        height: 400
-    };
-
-    // Select the div container where the pie chart will be drawn
-    const chartContainer = document.getElementById('googlePieChart');
-
-    // Instantiate and draw the pie chart
-    const chart = new google.visualization.PieChart(chartContainer);
-    chart.draw(data, options);
-}
-
-function addDevice() {
+  function addDevice() {
         window.location.href = "/device_add";
     }
 function addalerts() {
@@ -611,8 +904,7 @@ function addstaff() {
   window.addEventListener('popstate', function () {
     history.pushState(null, null, document.URL);
   });
-
-
+  
   </script>
 
   <script>
@@ -622,8 +914,20 @@ function addstaff() {
     })
   </script>
 
+<!-- <script>
+  var socket = io('http://127.0.0.1:5000', { transports: ['websocket'] });  // This establishes the WebSocket connection
+  socket.on('connect', function() {
+      console.log('Connected to the server');
+  });
 
-<script>
+  socket.on('abnormal_event', function(data) {
+      alert("Abnormal Event: " + data.message);
+  });
+</script> -->
+
+
+
+<!-- <script>
   async function checkForAlerts() {
       const response = await fetch('/send-message'); // Assume you have an endpoint to fetch latest alerts
       const data = await response.json();
@@ -634,6 +938,6 @@ function addstaff() {
   }
 
   setInterval(checkForAlerts, 5000); // Check for alerts every 5 seconds
-</script>
+</script> -->
 </body>
 </html>
