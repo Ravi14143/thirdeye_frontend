@@ -13,7 +13,6 @@ import signal
 import subprocess
 import sys
 import psutil
-from app import run_app
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -23,28 +22,6 @@ app.secret_key = 'a643ab7db1402aa452bdc9ec40a9a62e'
 
 # Set CUDA_LAUNCH_BLOCKING=1 for more accurate CUDA error reporting
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
-
-def stop_and_run_app():
-    print("Stopping existing app.py and starting a new instance...")
-
-    # Find and terminate existing app.py process
-    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-        # Check if the process is app.py
-        if 'app.py' in proc.info['cmdline']:
-            print(f"Killing existing app.py with PID: {proc.info['pid']}")
-            proc.terminate()  # Send a termination signal
-
-            # Wait for the process to terminate
-            proc.wait()  # Wait for the process to terminate
-            print(f"app.py with PID {proc.info['pid']} has been terminated.")
-
-            # Optional: Wait a moment to ensure the process has completely exited
-            time.sleep(1)  # Adjust this sleep duration as needed
-
-    # After terminating all existing processes, start a new instance
-    print("Starting a new instance of app.py...")
-    run_app()  # Run the Flask app in the main thread
-
 
 
 # Connect to SQLite database
@@ -317,7 +294,6 @@ def device_add():
         # Close the cursor and database connection
         cursor.close()
         conn.close()
-        stop_and_run_app()
 
         return redirect(url_for('home'))
 
@@ -436,8 +412,6 @@ def edit_device(device_id):
     device = cursor.fetchone()
     cursor.close()
     conn.close()
-    stop_and_run_app()
-
     return render_template('device_edit.html', device=device)
 
 @app.route('/update_device/<int:device_id>', methods=['POST'])
@@ -459,7 +433,6 @@ def update_device(device_id):
     conn.commit()
     cursor.close()
     conn.close()
-    stop_and_run_app()
 
     return redirect(url_for('home'))
 
@@ -472,7 +445,6 @@ def delete_device(device_id):
     conn.commit()
     cursor.close()
     conn.close()
-    stop_and_run_app()
 
     return redirect(url_for('home'))
 
